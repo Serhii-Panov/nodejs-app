@@ -1,72 +1,47 @@
 import express from 'express';
 import cors from 'cors';
-import pino from 'pino-http';
 import 'dotenv/config';
+import { errors } from 'celebrate';
+import { connectMongoDB } from './db/connectMongoDB.js';
+// Код імпортів та підключення middleware бібліотек
+import { logger } from './middleware/logger.js';
+import cookieParser from 'cookie-parser';
+import { notFoundHandler } from './middleware/notFoundHandler.js';
+import { errorHandler } from './middleware/errorHandler.js';
+
+
+import authRoutes from './routes/authRoutes.js';
+import studentsRoutes from './routes/studentsRoutes.js';
+
+
+
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 
-app.use((req, res, next) => {
-    console.log(`Time: ${new Date().toLocaleString()}`);
-    next();
-});
+// Глобальні middleware
+app.use(logger);         // 1. Логер першим — бачить усі запити
+app.use(express.json({
+    limit: '100kb' // обмежуємо розмір тіла запиту
+})); // 2. Парсинг JSON-тіла
+app.use(cookieParser());
+app.use(cors());         // 3. Дозвіл для запитів з інших доменів
 
+// Підключаємо групу маршрутів для аутентифікації
+app.use(authRoutes);
+// підключаємо групу маршрутів студента
+app.use(studentsRoutes);
 
-app.get('/', (req, res) => {
-    res.status(200).json({ message: 'Hello, World!'});
-});
+// 404 — якщо маршрут не знайдено
+app.use(notFoundHandler);
+app.use(errors());
+// Error — якщо під час запиту виникла помилка
+app.use(errorHandler);
 
-// Middleware для парсингу JSON
-app.use(express.json());
-app.use(cors()); // Дозволяє запити з будь-яких джерел
-app.use(
-  pino({
-    level: 'info',
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss',
-        ignore: 'pid,hostname',
-        messageFormat: '{req.method} {req.url} {res.statusCode} - {responseTime}ms',
-        hideObject: true,
-      },
-    },
-  }),
-);
-
-app.post('/users', (req, res) => {
-  console.log(req.body); // тепер тіло доступне як JS-об’єкт
-  res.status(201).json({ message: 'User created' });
-});
-
-
-// Маршрут для тестування middleware помилки
-app.get('/test-error', (req, res) => {
-  // Штучна помилка для прикладу
-  throw new Error('Something went wrong');
-});
-
-// Middleware 404 (після всіх маршрутів)
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
-// Middleware для обробки помилок
-app.use((err, req, res, next) => {
-  console.error(err);
-
-  const isProd = process.env.NODE_ENV === "production";
-
-  res.status(500).json({
-    message: isProd
-      ? "Something went wrong. Please try again later."
-      : err.message,
-  });
-});
+await connectMongoDB();
 
 app.listen(PORT, () => {
-    console.log("server is r;unning in oirt " + PORT);
+    console.log(`Server is running on port ${PORT}`);
 });
 
 
