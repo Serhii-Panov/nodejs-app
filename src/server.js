@@ -12,7 +12,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 import authRoutes from './routes/authRoutes.js';
 import studentsRoutes from './routes/studentsRoutes.js';
-
+import userRoutes from './routes/userRoutes.js';
 
 
 
@@ -31,6 +31,8 @@ app.use(cors());         // 3. Дозвіл для запитів з інших 
 app.use(authRoutes);
 // підключаємо групу маршрутів студента
 app.use(studentsRoutes);
+// підключаємо групу маршрутів користувача
+app.use(userRoutes);
 
 // 404 — якщо маршрут не знайдено
 app.use(notFoundHandler);

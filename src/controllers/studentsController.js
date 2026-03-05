@@ -108,3 +108,4 @@ export const updateStudent = async (req, res) => {
 
   res.status(200).json(student);
 };
+
